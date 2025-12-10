@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 # ---- Fixed market assumptions (DO NOT EDIT IN UI) ----
-TOTAL_BIKES_DUBAI = 40_000          # Based on RTA / survey style guesstimate
+TOTAL_BIKES_DUBAI = 40_000          # From Dubai RTA / market guesstimates
 BAGS_PER_BIKE_PER_YEAR = 1.5        # Wear & tear in Dubai heat
 ANNUAL_BAG_DEMAND = TOTAL_BIKES_DUBAI * BAGS_PER_BIKE_PER_YEAR  # 60,000 bags
 
@@ -41,7 +41,7 @@ TOTAL_FIXED_COSTS = (
     + FIXED_OTHER
 )
 
-# ---- Default volumes (these are model assumptions, not sliders) ----
+# ---- Default volumes (model assumptions) ----
 PILOT_B2B_UNITS = 400
 PILOT_B2C_UNITS = 200
 
@@ -116,21 +116,29 @@ def breakeven_units(contribution_per_unit: float) -> float:
 
 
 # ============================================================
-# PAGE HEADER & SIDEBAR
+# PAGE STYLING (BLUE/WHITE FEEL)
 # ============================================================
 st.markdown(
     """
     <style>
     .big-title {
         font-size: 32px;
+        font-weight: 800;
+        color: #0b3c5d;
+    }
+    .section-title {
+        font-size: 20px;
         font-weight: 700;
-        color: #1A5276;
+        color: #1f4e79;
     }
     .subtle-card {
-        background-color: #f8fbff;
+        background-color: #f5f9ff;
         padding: 1rem 1.2rem;
         border-radius: 0.8rem;
-        border: 1px solid #e1e8f5;
+        border: 1px solid #d6e4ff;
+    }
+    .metric-label > div {
+        color: #1f4e79 !important;
     }
     </style>
     """,
@@ -138,15 +146,17 @@ st.markdown(
 )
 
 st.markdown('<div class="big-title">📦 NOORSOL – Dubai Financial Dashboard</div>', unsafe_allow_html=True)
-st.caption("Solar-powered smart delivery & outdoor boxes • Focus: Dubai only • All values in AED")
+st.caption("Solar-powered smart delivery & outdoor boxes • Focus: Dubai • All values in AED")
 
-# Sidebar: ONLY adoption settings
+# ============================================================
+# SIDEBAR – ONLY MARKET CAPTURE ADJUSTABLE
+# ============================================================
 st.sidebar.header("🎯 Market Capture Assumptions")
 
 st.sidebar.write(
-    "All prices, COGS, riders, and bag demand are **fixed** based on our "
-    "research & guesstimates for Dubai. The **only thing you can play with** "
-    "is how much of the delivery-bag market NOORSOL captures."
+    "All prices, COGS, riders, and bag demand are **fixed**, based on Dubai-focused "
+    "research and smart guesstimates. The **only adjustable input** is how much of the "
+    "delivery-bag market NOORSOL captures in Year 1."
 )
 
 adoption_pess = st.sidebar.slider(
@@ -174,53 +184,65 @@ adoption_opt = st.sidebar.slider(
 )
 
 # ============================================================
-# TABS
+# TABS (OVERVIEW, P&L, BREAKEVEN)
 # ============================================================
-tab_overview, tab_pnl, tab_breakeven, tab_sensitivity = st.tabs(
-    ["🏁 Overview", "📊 P&L & Visuals", "⚖️ Breakeven", "📈 Sensitivity"]
+tab_overview, tab_pnl, tab_breakeven = st.tabs(
+    ["🏁 Overview", "📊 P&L & Visuals", "⚖️ Breakeven"]
 )
 
 # ============================================================
 # OVERVIEW TAB
 # ============================================================
 with tab_overview:
-    st.subheader("Dubai Delivery Ecosystem & NOORSOL Assumptions")
+    st.markdown('<div class="section-title">Dubai Delivery Ecosystem & NOORSOL Snapshot</div>', unsafe_allow_html=True)
 
+    top_col1, top_col2, top_col3 = st.columns(3)
+    with top_col1:
+        st.metric("Active delivery bikes (Dubai)", f"{TOTAL_BIKES_DUBAI:,.0f}")
+    with top_col2:
+        st.metric("Bags per bike per year", f"{BAGS_PER_BIKE_PER_YEAR:.1f}")
+    with top_col3:
+        st.metric("Annual bag demand (est.)", f"{ANNUAL_BAG_DEMAND:,.0f}")
+
+    st.markdown("")
     col1, col2 = st.columns(2)
 
     with col1:
         st.markdown('<div class="subtle-card">', unsafe_allow_html=True)
-        st.markdown("#### 🚚 Delivery Ecosystem (Dubai – Fixed Assumptions)")
+        st.markdown("#### 🚚 Delivery Ecosystem (Fixed Assumptions)")
         st.markdown(
             f"""
-            - Estimated active delivery bikes: **{TOTAL_BIKES_DUBAI:,}**
-            - Average bags used per bike per year: **{BAGS_PER_BIKE_PER_YEAR:.1f}**
-            - Implied annual bag demand: **{int(ANNUAL_BAG_DEMAND):,} bags**
-            
-            These numbers come from:
-            - Registered delivery motorcycles & RTA info
-            - Guesstimated bag wear rate in Dubai heat  
+            - **{TOTAL_BIKES_DUBAI:,}** active delivery bikes in Dubai  
+            - Each bike uses **~{BAGS_PER_BIKE_PER_YEAR:.1f}** thermal bags per year  
+            - Implied annual bag replacement: **{int(ANNUAL_BAG_DEMAND):,} bags**  
+
+            These numbers reflect:
+            - Registered delivery motorcycles in Dubai  
+            - Wear-and-tear due to heat and heavy daily usage  
             """
         )
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col2:
         st.markdown('<div class="subtle-card">', unsafe_allow_html=True)
-        st.markdown("#### 💰 Fixed Product Economics (Non-Adjustable)")
+        st.markdown("#### 💰 Product Economics (Fixed)")
         st.markdown(
             f"""
             **B2B – NOORSOL Retrofit (Delivery Platforms)**  
             - Launch price: **{B2B_PRICE_LAUNCH} AED / unit**  
-            - COGS (retrofit upcycling): **{B2B_COGS} AED / unit**
+            - COGS (retrofit upcycling): **{B2B_COGS} AED / unit**  
+            - Gross margin per B2B unit: **{B2B_PRICE_LAUNCH - B2B_COGS} AED**
 
             **B2C – NOORSOL MOVE (Beach-Lite)**  
             - Launch price: **{B2C_PRICE_LAUNCH} AED / unit**  
-            - COGS: **{B2C_COGS} AED / unit**
+            - COGS: **{B2C_COGS} AED / unit**  
+            - Gross margin per B2C unit: **{B2C_PRICE_LAUNCH - B2C_COGS} AED**
             """
         )
         st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown("### 🧾 Fixed Cost Structure (Year 1)")
+    st.markdown("---")
+    st.markdown('<div class="section-title">Fixed Cost Structure – Year 1</div>', unsafe_allow_html=True)
 
     col_fc1, col_fc2, col_fc3, col_fc4, col_fc5 = st.columns(5)
     col_fc1.metric("Salaries", f"{FIXED_SALARIES:,.0f}")
@@ -231,12 +253,38 @@ with tab_overview:
 
     st.metric("Total Fixed Costs (Annual)", f"{TOTAL_FIXED_COSTS:,.0f} AED")
 
+    st.markdown("---")
+    st.markdown('<div class="section-title">How Much of Dubai’s Bag Market Does NOORSOL Capture?</div>', unsafe_allow_html=True)
+
+    # Simple visual: adoption vs total bag demand
+    demand_data = pd.DataFrame({
+        "Scenario": ["Pessimistic", "Base", "Optimistic"],
+        "Adoption %": [adoption_pess, adoption_base, adoption_opt],
+    })
+    demand_data["Captured bags (units)"] = demand_data["Adoption %"] * ANNUAL_BAG_DEMAND
+
+    fig_demand = px.bar(
+        demand_data,
+        x="Scenario",
+        y="Captured bags (units)",
+        color="Scenario",
+        color_discrete_sequence=["#5dade2", "#2874a6", "#154360"],
+        text_auto=".0f",
+        title="B2B Market Capture – Bags Replaced by NOORSOL (Year 1)"
+    )
+    fig_demand.update_layout(
+        yaxis_title="Bags captured (units)",
+        xaxis_title="Scenario",
+        legend_title="Scenario",
+    )
+    st.plotly_chart(fig_demand, use_container_width=True)
+
 
 # ============================================================
 # P&L & VISUALS TAB
 # ============================================================
 with tab_pnl:
-    st.subheader("Year 1 P&L – Pessimistic / Base / Optimistic")
+    st.markdown('<div class="section-title">Year 1 P&L – Pessimistic / Base / Optimistic</div>', unsafe_allow_html=True)
 
     # Compute scenarios for Year 1
     scenarios = [
@@ -252,7 +300,7 @@ with tab_pnl:
     col_top2.metric("Base Revenue",        f"{df_scen.loc[1, 'Total revenue (AED)']:,.0f}")
     col_top3.metric("Optimistic Revenue",  f"{df_scen.loc[2, 'Total revenue (AED)']:,.0f}")
 
-    st.markdown("#### 📋 Scenario Table")
+    st.markdown("#### Scenario Table")
 
     st.dataframe(
         df_scen[[
@@ -277,7 +325,7 @@ with tab_pnl:
     )
 
     st.markdown("---")
-    st.markdown("### 📊 Visuals – Revenue & EBIT by Scenario")
+    st.markdown("### Revenue & EBIT by Scenario")
 
     col_chart1, col_chart2 = st.columns(2)
 
@@ -287,11 +335,15 @@ with tab_pnl:
             x="Scenario",
             y="Total revenue (AED)",
             color="Scenario",
-            color_discrete_sequence=["#ffb703", "#219ebc", "#8ecae6"],
-            title="Total Revenue by Scenario",
+            color_discrete_sequence=["#5dade2", "#2874a6", "#154360"],
             text_auto=".0f",
+            title="Total Revenue by Scenario",
         )
-        fig_rev.update_layout(yaxis_title="Revenue (AED)")
+        fig_rev.update_layout(
+            yaxis_title="Revenue (AED)",
+            xaxis_title="Scenario",
+            legend_title="Scenario"
+        )
         st.plotly_chart(fig_rev, use_container_width=True)
 
     with col_chart2:
@@ -300,23 +352,21 @@ with tab_pnl:
             x="Scenario",
             y="EBIT (AED)",
             color="Scenario",
-            color_discrete_sequence=["#fb8500", "#2a9d8f", "#264653"],
-            title="EBIT by Scenario",
+            color_discrete_sequence=["#7fb3d5", "#2e86c1", "#1b4f72"],
             text_auto=".0f",
+            title="EBIT by Scenario",
         )
-        fig_ebit.update_layout(yaxis_title="EBIT (AED)")
+        fig_ebit.update_layout(
+            yaxis_title="EBIT (AED)",
+            xaxis_title="Scenario",
+            legend_title="Scenario"
+        )
         st.plotly_chart(fig_ebit, use_container_width=True)
 
     st.markdown("---")
-    st.markdown("### 🥧 Donut Charts – Revenue Split & Value Creation")
+    st.markdown("### 🥧 Donut Charts – Revenue Mix & Value Capture (Base Scenario)")
 
-    # Select scenario for donuts
-    donut_scenario = st.selectbox(
-        "Choose scenario to inspect in detail",
-        options=df_scen["Scenario"].tolist(),
-        index=1
-    )
-    row = df_scen[df_scen["Scenario"] == donut_scenario].iloc[0]
+    base_row = df_scen[df_scen["Scenario"] == "Base"].iloc[0]
 
     col_d1, col_d2 = st.columns(2)
 
@@ -324,54 +374,83 @@ with tab_pnl:
         # Revenue split donut (B2B vs B2C)
         rev_split_df = pd.DataFrame({
             "Segment": ["B2B NOORSOL (retrofit)", "B2C NOORSOL MOVE"],
-            "Revenue": [row["B2B revenue (AED)"], row["B2C revenue (AED)"]],
+            "Revenue": [base_row["B2B revenue (AED)"], base_row["B2C revenue (AED)"]],
         })
         fig_donut_rev = px.pie(
             rev_split_df,
             names="Segment",
             values="Revenue",
-            hole=0.5,
-            title=f"Revenue Mix – {donut_scenario} Scenario",
-            color_discrete_sequence=["#023047", "#ffb703"]
+            hole=0.55,
+            title="Revenue Mix – Base Scenario",
+            color_discrete_sequence=["#1f77b4", "#aec7e8"]
         )
+        fig_donut_rev.update_traces(textposition="inside", textinfo="percent+label")
         st.plotly_chart(fig_donut_rev, use_container_width=True)
 
     with col_d2:
         # Value creation donut (COGS vs Gross Profit)
         value_df = pd.DataFrame({
             "Component": ["COGS", "Gross Profit"],
-            "Value": [row["Total COGS (AED)"], row["Gross profit (AED)"]],
+            "Value": [base_row["Total COGS (AED)"], base_row["Gross profit (AED)"]],
         })
         fig_donut_val = px.pie(
             value_df,
             names="Component",
             values="Value",
-            hole=0.5,
-            title=f"Value Capture – {donut_scenario} Scenario",
-            color_discrete_sequence=["#e76f51", "#2a9d8f"]
+            hole=0.55,
+            title="Value Capture – Base Scenario",
+            color_discrete_sequence=["#5dade2", "#21618c"]
         )
+        fig_donut_val.update_traces(textposition="inside", textinfo="percent+label")
         st.plotly_chart(fig_donut_val, use_container_width=True)
 
+    st.markdown("---")
+    st.markdown("### 📈 Pilot vs Year 1 – Visual Comparison")
+
+    # Pilot P&L (simple, non-annualised)
+    pilot_b2b_rev = PILOT_B2B_UNITS * B2B_PRICE_PILOT
+    pilot_b2c_rev = PILOT_B2C_UNITS * B2C_PRICE_PILOT
+    pilot_rev_total = pilot_b2b_rev + pilot_b2c_rev
+    pilot_cogs_total = PILOT_B2B_UNITS * B2B_COGS + PILOT_B2C_UNITS * B2C_COGS
+    pilot_gross_profit = pilot_rev_total - pilot_cogs_total
+
+    compare_df = pd.DataFrame({
+        "Phase": ["Pilot", "Year 1 Base"],
+        "Revenue": [pilot_rev_total, base_row["Total revenue (AED)"]],
+        "Gross Profit": [pilot_gross_profit, base_row["Gross profit (AED)"]],
+    })
+
+    fig_compare = px.bar(
+        compare_df.melt(id_vars="Phase", var_name="Metric", value_name="AED"),
+        x="Phase",
+        y="AED",
+        color="Metric",
+        barmode="group",
+        color_discrete_sequence=["#5dade2", "#1f618d"],
+        title="Pilot vs Year 1 Base – Revenue & Gross Profit",
+    )
+    fig_compare.update_layout(
+        yaxis_title="AED",
+        xaxis_title="Phase",
+        legend_title="Metric"
+    )
+    st.plotly_chart(fig_compare, use_container_width=True)
+
 
 # ============================================================
-# BREAKEVEN TAB
+# BREAKEVEN TAB – ONLY BASE SCENARIO
 # ============================================================
 with tab_breakeven:
-    st.subheader("⚖️ Breakeven Analysis (Year 1 – Launch Economics)")
+    st.markdown('<div class="section-title">Breakeven Analysis – Base Scenario Only</div>', unsafe_allow_html=True)
 
-    # Choose scenario for breakeven
-    be_scenario = st.selectbox(
-        "Scenario for breakeven calculation",
-        options=df_scen["Scenario"].tolist(),
-        index=1
-    )
-    be_row = df_scen[df_scen["Scenario"] == be_scenario].iloc[0]
-    contrib_unit = be_row["Contribution / unit (AED)"]
-    be_units_total = breakeven_units(contrib_unit)
+    # Use Base Scenario for breakeven
+    base_row = df_scen[df_scen["Scenario"] == "Base"].iloc[0]
+    contribution_per_unit = base_row["Contribution / unit (AED)"]
+    be_units_total = breakeven_units(contribution_per_unit)
 
     col_be1, col_be2, col_be3 = st.columns(3)
-    col_be1.metric("Contribution / unit", f"{contrib_unit:,.0f} AED")
-    col_be2.metric("Total fixed costs", f"{TOTAL_FIXED_COSTS:,.0f} AED")
+    col_be1.metric("Contribution / unit (Base)", f"{contribution_per_unit:,.0f} AED")
+    col_be2.metric("Fixed costs (Year 1)", f"{TOTAL_FIXED_COSTS:,.0f} AED")
     col_be3.metric(
         "Breakeven units (total)",
         "∞" if np.isinf(be_units_total) else f"{be_units_total:,.0f}"
@@ -380,11 +459,11 @@ with tab_breakeven:
     st.markdown("---")
 
     if not np.isinf(be_units_total) and be_units_total > 0:
-        st.markdown("### 📈 Cumulative Profit vs Units Sold")
+        st.markdown("### 📈 Cumulative Profit vs Units Sold (Base Scenario)")
 
         max_units = int(be_units_total * 1.5)
         units = np.linspace(0, max_units, 60)
-        cum_profit = (units * contrib_unit) - TOTAL_FIXED_COSTS
+        cum_profit = (units * contribution_per_unit) - TOTAL_FIXED_COSTS
         df_be = pd.DataFrame({
             "Total units sold": units,
             "Cumulative profit (AED)": cum_profit,
@@ -394,85 +473,22 @@ with tab_breakeven:
             df_be,
             x="Total units sold",
             y="Cumulative profit (AED)",
-            title=f"Cumulative Profit Curve – {be_scenario} Scenario",
-            color_discrete_sequence=["#219ebc"]
+            title="Cumulative Profit Curve – Base Scenario",
+            color_discrete_sequence=["#1f77b4"],
         )
-        fig_be.add_hline(y=0, line_dash="dash", line_color="#888")
+        fig_be.add_hline(y=0, line_dash="dash", line_color="#7f8c8d")
+        fig_be.update_layout(
+            xaxis_title="Total units sold",
+            yaxis_title="Cumulative profit (AED)",
+        )
         st.plotly_chart(fig_be, use_container_width=True)
 
         st.info(
-            f"Breakeven occurs where the curve crosses zero. In the **{be_scenario}** scenario, "
-            f"NOORSOL needs to sell approximately **{be_units_total:,.0f} units** in Year 1 "
-            "to cover fixed costs."
+            f"In the **Base Scenario**, NOORSOL needs to sell approximately "
+            f"**{be_units_total:,.0f} units** in Year 1 to breakeven on fixed costs."
         )
     else:
         st.warning(
-            "Contribution per unit is non-positive for this scenario, so breakeven cannot be reached with "
-            "the current assumptions."
+            "Contribution per unit is non-positive in the Base Scenario, so breakeven cannot be achieved "
+            "with the current assumptions."
         )
-
-
-# ============================================================
-# SENSITIVITY TAB
-# ============================================================
-with tab_sensitivity:
-    st.subheader("📈 Sensitivity – How Sensitive is NOORSOL to Adoption?")
-
-    st.markdown(
-        """
-        Here we hold B2C units fixed and see how changing **B2B adoption** (as % of annual bag demand)
-        impacts revenue, gross profit, and EBIT.
-        """
-    )
-
-    b2c_units_for_sens = Y1_B2C_BASE  # keep base as reference
-
-    adoption_grid = [0.15, 0.25, 0.40]
-    sens_rows = [
-        compute_scenario(f"{int(rate * 100)}%", rate, b2c_units_for_sens)
-        for rate in adoption_grid
-    ]
-    df_sens = pd.DataFrame(sens_rows)
-
-    st.markdown("### Sensitivity Table (B2B Adoption Levels)")
-    st.dataframe(
-        df_sens[[
-            "Scenario",
-            "Adoption (B2B % of bags)",
-            "B2B units",
-            "Total revenue (AED)",
-            "Gross profit (AED)",
-            "EBIT (AED)",
-            "EBIT margin (%)"
-        ]].style.format({
-            "Adoption (B2B % of bags)": "{:.0%}",
-            "B2B units": "{:,.0f}",
-            "Total revenue (AED)": "{:,.0f}",
-            "Gross profit (AED)": "{:,.0f}",
-            "EBIT (AED)": "{:,.0f}",
-            "EBIT margin (%)": "{:,.1f}",
-        }),
-        use_container_width=True
-    )
-
-    st.markdown("### 📉 Line Chart – Revenue, Gross Profit & EBIT vs Adoption")
-
-    fig_sens = px.line(
-        df_sens,
-        x="Scenario",
-        y=["Total revenue (AED)", "Gross profit (AED)", "EBIT (AED)"],
-        markers=True,
-        title="Impact of B2B Adoption (%) on Financial Outcomes",
-        color_discrete_sequence=["#219ebc", "#2a9d8f", "#e76f51"]
-    )
-    fig_sens.update_layout(
-        xaxis_title="B2B Adoption Scenario",
-        yaxis_title="AED",
-        legend_title="Metric"
-    )
-    st.plotly_chart(fig_sens, use_container_width=True)
-
-    st.info(
-        "Use this chart in your pitch to show that **even modest B2B adoption in Dubai** "
-        "can generate significant revenue and EBIT once fixed costs are covered."
-    )
