@@ -21,12 +21,10 @@ B2C_MARKET_SIZE_DUBAI = 200_000     # Cooler-style TAM per year in Dubai
 
 # ---- Fixed product economics ----
 # B2B: NOORSOL retrofit (upcycling existing boxes)
-B2B_PRICE_PILOT = 399
 B2B_PRICE_LAUNCH = 450
 B2B_COGS = 200
 
 # B2C: NOORSOL MOVE (Beach-Lite)
-B2C_PRICE_PILOT = 499
 B2C_PRICE_LAUNCH = 599
 B2C_COGS = 305
 
@@ -43,10 +41,6 @@ TOTAL_FIXED_COSTS = (
     + FIXED_OPS
     + FIXED_OTHER
 )
-
-# ---- Pilot volumes (model assumptions) ----
-PILOT_B2B_UNITS = 400
-PILOT_B2C_UNITS = 200
 
 
 # ============================================================
@@ -112,60 +106,6 @@ def compute_scenario(name: str,
     }
 
 
-def compute_pilot() -> dict:
-    """
-    Compute a 'pilot year' style income statement using pilot pricing and
-    fixed Year 1 costs (for comparability). Treated as Year 0.
-    """
-    b2b_units = PILOT_B2B_UNITS
-    b2c_units = PILOT_B2C_UNITS
-
-    b2b_price = B2B_PRICE_PILOT
-    b2c_price = B2C_PRICE_PILOT
-
-    # Revenue
-    b2b_revenue = b2b_units * b2b_price
-    b2c_revenue = b2c_units * b2c_price
-    total_revenue = b2b_revenue + b2c_revenue
-
-    # COGS
-    b2b_cogs_total = b2b_units * B2B_COGS
-    b2c_cogs_total = b2c_units * B2C_COGS
-    total_cogs = b2b_cogs_total + b2c_cogs_total
-
-    # Gross profit
-    gross_profit = total_revenue - total_cogs
-    gross_margin_pct = (gross_profit / total_revenue * 100) if total_revenue > 0 else 0
-
-    # EBIT (use same fixed cost structure for comparison)
-    ebit = gross_profit - TOTAL_FIXED_COSTS
-    ebit_margin_pct = (ebit / total_revenue * 100) if total_revenue > 0 else 0
-
-    total_units = b2b_units + b2c_units
-    contribution_per_unit = (gross_profit / total_units) if total_units > 0 else 0
-
-    return {
-        "Scenario": "Pilot (Year 0)",
-        "Adoption B2B (bags %)": np.nan,
-        "Adoption B2C (coolers %)": np.nan,
-        "B2B units": b2b_units,
-        "B2C units": b2c_units,
-        "Total units": total_units,
-        "B2B revenue (AED)": b2b_revenue,
-        "B2C revenue (AED)": b2c_revenue,
-        "Total revenue (AED)": total_revenue,
-        "Total COGS (AED)": total_cogs,
-        "Gross profit (AED)": gross_profit,
-        "Gross margin (%)": gross_margin_pct,
-        "Fixed costs (AED)": TOTAL_FIXED_COSTS,
-        "EBIT (AED)": ebit,
-        "EBIT margin (%)": ebit_margin_pct,
-        "Contribution / unit (AED)": contribution_per_unit,
-        "B2B COGS total (AED)": b2b_cogs_total,
-        "B2C COGS total (AED)": b2c_cogs_total,
-    }
-
-
 def breakeven_units(contribution_per_unit: float) -> float:
     if contribution_per_unit <= 0:
         return float("inf")
@@ -210,7 +150,7 @@ st.sidebar.header("🎯 Market Capture Assumptions")
 st.sidebar.write(
     "All prices, COGS, riders, and TAMs are **fixed** based on Dubai-focused "
     "research and smart guesstimates. You can adjust how much of each market "
-    "NOORSOL captures in Year 1."
+    "NOORSOL captures in **Year 1**."
 )
 
 # B2B adoption sliders (% of 40,000 bags)
@@ -345,7 +285,7 @@ with tab_overview:
     st.metric("Total Fixed Costs (Annual)", f"{TOTAL_FIXED_COSTS:,.0f} AED")
 
     st.markdown("---")
-    st.markdown('<div class="section-title">How Much of Each Market Does NOORSOL Capture?</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">How Much of Each Market Does NOORSOL Capture in Year 1?</div>', unsafe_allow_html=True)
 
     # B2B/B2C capture for each scenario
     demand_data = pd.DataFrame({
@@ -395,7 +335,7 @@ with tab_overview:
     st.markdown("---")
     st.markdown("### 📊 TAM vs NOORSOL Target – Base Scenario (Stacked View)")
 
-    # Stacked bar: Remaining Market vs NOORSOL Target for B2B & B2C
+    # Stacked bar: Remaining Market vs NOORSOL Target for B2B & B2C (Base scenario)
     base_captured_b2b = ANNUAL_BAG_DEMAND * adoption_base_b2b
     base_captured_b2c = B2C_MARKET_SIZE_DUBAI * b2c_base
 
@@ -415,7 +355,7 @@ with tab_overview:
         color="Segment",
         barmode="stack",
         color_discrete_sequence=["#1f77b4", "#d6e4ff"],
-        title="TAM vs NOORSOL Target – Base Scenario (Stacked Bar)",
+        title="TAM vs NOORSOL Target – Base Scenario (Year 1)",
         text_auto=".0f"
     )
     fig_stack.update_layout(
@@ -427,34 +367,21 @@ with tab_overview:
 
 
 # ============================================================
-# P&L & BRANDS TAB
+# P&L & BRANDS TAB – YEAR 1 ONLY
 # ============================================================
 with tab_pnl:
-    st.markdown('<div class="section-title">P&L, Brand Contribution & Scenarios</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">P&L, Brand Contribution & Scenarios – Year 1</div>', unsafe_allow_html=True)
 
-    # --- Dropdowns: Scenario & Phase ---
-    col_sel1, col_sel2 = st.columns(2)
-    with col_sel1:
-        scenario_choice = st.selectbox(
-            "Select scenario to analyse",
-            ["Pessimistic", "Base", "Optimistic"],
-            index=1
-        )
-    with col_sel2:
-        phase_choice = st.selectbox(
-            "Select phase",
-            ["Pilot (Year 0)", "Year 1"],
-            index=1
-        )
+    # --- Dropdown: Scenario (Year 1 only) ---
+    scenario_choice = st.selectbox(
+        "Select Year 1 scenario to analyse",
+        ["Pessimistic", "Base", "Optimistic"],
+        index=1
+    )
 
-    # --- Determine selected financials ---
-    if phase_choice == "Pilot (Year 0)":
-        selected_fin = compute_pilot()
-        selected_label = f"Pilot (Year 0) – same across scenarios (fixed pilot volumes)"
-    else:
-        selected_row = df_scen[df_scen["Scenario"] == scenario_choice].iloc[0]
-        selected_fin = selected_row.to_dict()
-        selected_label = f"Year 1 – {scenario_choice} Scenario"
+    selected_row = df_scen[df_scen["Scenario"] == scenario_choice].iloc[0]
+    selected_fin = selected_row.to_dict()
+    selected_label = f"Year 1 – {scenario_choice} Scenario"
 
     # --- Key metrics for selected case ---
     st.markdown(f"#### Income Statement – {selected_label}")
@@ -490,7 +417,7 @@ with tab_pnl:
     )
 
     st.markdown("---")
-    st.markdown("### Brand Contribution – Revenue & Profit (Selected Case)")
+    st.markdown("### Brand Contribution – Revenue & Profit (Selected Year 1 Scenario)")
 
     # --- Donut charts: brand contribution to revenue & gross profit ---
     gp_b2b = selected_fin["B2B revenue (AED)"] - selected_fin["B2B COGS total (AED)"]
@@ -539,7 +466,7 @@ with tab_pnl:
         st.plotly_chart(fig_donut_gp, use_container_width=True)
 
     st.markdown("---")
-    st.markdown("### 📊 Key Financial Ratios – Selected Case")
+    st.markdown("### 📊 Key Financial Ratios – Selected Year 1 Scenario")
 
     total_rev = selected_fin["Total revenue (AED)"]
     if total_rev > 0:
@@ -571,7 +498,7 @@ with tab_pnl:
         y="Metric",
         orientation="h",
         text_auto=".1f",
-        title="Key Financial Ratios",
+        title="Key Financial Ratios – Year 1",
         color_discrete_sequence=["#2874a6"],
     )
     fig_metrics.update_layout(
@@ -603,10 +530,10 @@ with tab_pnl:
 
 
 # ============================================================
-# BREAKEVEN TAB – ONLY BASE SCENARIO
+# BREAKEVEN TAB – BASE SCENARIO, YEAR 1
 # ============================================================
 with tab_breakeven:
-    st.markdown('<div class="section-title">Breakeven Analysis – Base Scenario Only (Year 1)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Breakeven Analysis – Base Scenario (Year 1)</div>', unsafe_allow_html=True)
 
     # Use Base Scenario for breakeven
     base_row = df_scen[df_scen["Scenario"] == "Base"].iloc[0]
@@ -624,7 +551,7 @@ with tab_breakeven:
     st.markdown("---")
 
     if not np.isinf(be_units_total) and be_units_total > 0:
-        st.markdown("### 📈 Cumulative Profit vs Units Sold (Base Scenario)")
+        st.markdown("### 📈 Cumulative Profit vs Units Sold (Base Scenario – Year 1)")
 
         max_units = int(be_units_total * 1.5)
         units = np.linspace(0, max_units, 60)
@@ -638,19 +565,19 @@ with tab_breakeven:
             df_be,
             x="Total units sold",
             y="Cumulative profit (AED)",
-            title="Cumulative Profit Curve – Base Scenario",
+            title="Cumulative Profit Curve – Base Scenario (Year 1)",
             color_discrete_sequence=["#1f77b4"],
         )
         fig_be.add_hline(y=0, line_dash="dash", line_color="#7f8c8d")
         fig_be.update_layout(
-            xaxis_title="Total units sold",
+            xaxis_title="Total units sold (B2B + B2C blended)",
             yaxis_title="Cumulative profit (AED)",
         )
         st.plotly_chart(fig_be, use_container_width=True)
 
         st.info(
-            f"In the **Base Scenario**, NOORSOL needs to sell approximately "
-            f"**{be_units_total:,.0f} units** in Year 1 to breakeven on fixed costs."
+            f"In the **Base Scenario (Year 1)**, NOORSOL needs to sell approximately "
+            f"**{be_units_total:,.0f} units** in total to breakeven on fixed costs."
         )
     else:
         st.warning(
