@@ -190,6 +190,9 @@ st.markdown(
         border-radius: 0.8rem;
         border: 1px solid #d6e4ff;
     }
+    .center-text {
+        text-align: center;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -247,7 +250,7 @@ df_scen = pd.DataFrame(scenarios)
 # TABS (OVERVIEW, P&L, BREAKEVEN)
 # ============================================================
 tab_overview, tab_pnl, tab_breakeven = st.tabs(
-    ["🏁 Overview", "📊 P&L & Visuals", "⚖️ Breakeven"]
+    ["🏁 Overview", "📊 P&L & Brands", "⚖️ Breakeven"]
 )
 
 # ============================================================
@@ -341,44 +344,44 @@ with tab_overview:
 
 
 # ============================================================
-# P&L & VISUALS TAB
+# P&L & BRANDS TAB
 # ============================================================
 with tab_pnl:
-    st.markdown('<div class="section-title">Year 0 & Year 1 P&L – with Detailed Income Statement</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">P&L, Brands & Scenarios</div>', unsafe_allow_html=True)
 
-    # ---- Phase & Scenario selectors ----
+    # --- Dropdowns: Scenario & Phase ---
     col_sel1, col_sel2 = st.columns(2)
     with col_sel1:
+        scenario_choice = st.selectbox(
+            "Select scenario to analyse",
+            ["Pessimistic", "Base", "Optimistic"],
+            index=1
+        )
+    with col_sel2:
         phase_choice = st.selectbox(
             "Select phase",
             ["Pilot (Year 0)", "Year 1"],
             index=1
         )
-    with col_sel2:
-        scenario_choice = st.selectbox(
-            "Select scenario",
-            ["Pessimistic", "Base", "Optimistic"],
-            index=1
-        )
 
-    # ---- Determine selected financials ----
+    # --- Determine selected financials ---
     if phase_choice == "Pilot (Year 0)":
         selected_fin = compute_pilot()
-        selected_label = "Pilot (Year 0)"
+        selected_label = f"Pilot (Year 0) – {scenario_choice} (pilot assumptions are same across scenarios)"
     else:
         selected_row = df_scen[df_scen["Scenario"] == scenario_choice].iloc[0]
         selected_fin = selected_row.to_dict()
         selected_label = f"Year 1 – {scenario_choice} Scenario"
 
-    # ---- Top metrics for selected case ----
+    # --- Key metrics for selected case ---
+    st.markdown(f"#### Income Statement – {selected_label}")
+
     col_m1, col_m2, col_m3 = st.columns(3)
     col_m1.metric("Total Revenue", f"{selected_fin['Total revenue (AED)']:,.0f}")
     col_m2.metric("Gross Profit", f"{selected_fin['Gross profit (AED)']:,.0f}")
     col_m3.metric("EBIT", f"{selected_fin['EBIT (AED)']:,.0f}")
 
-    st.markdown(f"#### Income Statement – {selected_label}")
-
-    # ---- Build income statement ----
+    # --- Income Statement Table (Industry-style) ---
     income_rows = [
         ("Revenue - B2B", selected_fin["B2B revenue (AED)"]),
         ("Revenue - B2C", selected_fin["B2C revenue (AED)"]),
@@ -404,141 +407,65 @@ with tab_pnl:
     )
 
     st.markdown("---")
-    st.markdown("### Scenario Comparison – Year 1 (All Scenarios)")
+    st.markdown("### Brand Contribution – Revenue & Profit (Selected Case)")
 
-    # High-level metrics for Year 1 scenarios
-    col_top1, col_top2, col_top3 = st.columns(3)
-    col_top1.metric("Pessimistic Revenue", f"{df_scen.loc[0, 'Total revenue (AED)']:,.0f}")
-    col_top2.metric("Base Revenue",        f"{df_scen.loc[1, 'Total revenue (AED)']:,.0f}")
-    col_top3.metric("Optimistic Revenue",  f"{df_scen.loc[2, 'Total revenue (AED)']:,.0f}")
-
-    st.markdown("#### Year 1 Scenario Table")
-
-    st.dataframe(
-        df_scen[[
-            "Scenario",
-            "Adoption (B2B % of bags)",
-            "B2B units",
-            "B2C units",
-            "Total revenue (AED)",
-            "Gross profit (AED)",
-            "EBIT (AED)",
-            "EBIT margin (%)"
-        ]].style.format({
-            "Adoption (B2B % of bags)": "{:.0%}",
-            "B2B units": "{:,.0f}",
-            "B2C units": "{:,.0f}",
-            "Total revenue (AED)": "{:,.0f}",
-            "Gross profit (AED)": "{:,.0f}",
-            "EBIT (AED)": "{:,.0f}",
-            "EBIT margin (%)": "{:,.1f}",
-        }),
-        use_container_width=True,
-    )
-
-    st.markdown("---")
-    st.markdown("### Revenue & EBIT by Scenario (Year 1)")
-
-    col_chart1, col_chart2 = st.columns(2)
-
-    with col_chart1:
-        fig_rev = px.bar(
-            df_scen,
-            x="Scenario",
-            y="Total revenue (AED)",
-            color="Scenario",
-            color_discrete_sequence=["#5dade2", "#2874a6", "#154360"],
-            text_auto=".0f",
-            title="Total Revenue by Scenario (Year 1)",
-        )
-        fig_rev.update_layout(
-            yaxis_title="Revenue (AED)",
-            xaxis_title="Scenario",
-            legend_title="Scenario"
-        )
-        st.plotly_chart(fig_rev, use_container_width=True)
-
-    with col_chart2:
-        fig_ebit = px.bar(
-            df_scen,
-            x="Scenario",
-            y="EBIT (AED)",
-            color="Scenario",
-            color_discrete_sequence=["#7fb3d5", "#2e86c1", "#1b4f72"],
-            text_auto=".0f",
-            title="EBIT by Scenario (Year 1)",
-        )
-        fig_ebit.update_layout(
-            yaxis_title="EBIT (AED)",
-            xaxis_title="Scenario",
-            legend_title="Scenario"
-        )
-        st.plotly_chart(fig_ebit, use_container_width=True)
-
-    st.markdown("---")
-    st.markdown("### 🥧 Donut Charts – Revenue Mix & Value Capture (Base Scenario, Year 1)")
-
-    base_row = df_scen[df_scen["Scenario"] == "Base"].iloc[0]
+    # --- Donut charts: brand contribution to revenue & profit ---
+    # Compute brand-level gross profit
+    gp_b2b = selected_fin["B2B revenue (AED)"] - selected_fin["B2B COGS total (AED)"]
+    gp_b2c = selected_fin["B2C revenue (AED)"] - selected_fin["B2C COGS total (AED)"]
 
     col_d1, col_d2 = st.columns(2)
 
     with col_d1:
-        # Revenue split donut (B2B vs B2C)
         rev_split_df = pd.DataFrame({
             "Segment": ["B2B NOORSOL (retrofit)", "B2C NOORSOL MOVE"],
-            "Revenue": [base_row["B2B revenue (AED)"], base_row["B2C revenue (AED)"]],
+            "Value": [selected_fin["B2B revenue (AED)"], selected_fin["B2C revenue (AED)"]],
         })
         fig_donut_rev = px.pie(
             rev_split_df,
             names="Segment",
-            values="Revenue",
+            values="Value",
             hole=0.55,
-            title="Revenue Mix – Base Scenario (Year 1)",
+            title=f"Revenue Mix – {selected_label}",
             color_discrete_sequence=["#1f77b4", "#aec7e8"]
         )
         fig_donut_rev.update_traces(textposition="inside", textinfo="percent+label")
         st.plotly_chart(fig_donut_rev, use_container_width=True)
 
     with col_d2:
-        # Value creation donut (COGS vs Gross Profit)
-        value_df = pd.DataFrame({
-            "Component": ["COGS", "Gross Profit"],
-            "Value": [base_row["Total COGS (AED)"], base_row["Gross profit (AED)"]],
+        profit_split_df = pd.DataFrame({
+            "Segment": ["B2B NOORSOL (retrofit)", "B2C NOORSOL MOVE"],
+            "Value": [gp_b2b, gp_b2c],
         })
-        fig_donut_val = px.pie(
-            value_df,
-            names="Component",
+        fig_donut_gp = px.pie(
+            profit_split_df,
+            names="Segment",
             values="Value",
             hole=0.55,
-            title="Value Capture – Base Scenario (Year 1)",
+            title=f"Gross Profit Mix – {selected_label}",
             color_discrete_sequence=["#5dade2", "#21618c"]
         )
-        fig_donut_val.update_traces(textposition="inside", textinfo="percent+label")
-        st.plotly_chart(fig_donut_val, use_container_width=True)
+        fig_donut_gp.update_traces(textposition="inside", textinfo="percent+label")
+        st.plotly_chart(fig_donut_gp, use_container_width=True)
 
     st.markdown("---")
-    st.markdown("### 📈 Pilot vs Year 1 Base – Revenue & Gross Profit")
+    st.markdown("### Scenario Comparison – Year 1 (All Cases)")
 
-    # Pilot P&L (simple, non-annualised idea using pilot prices)
-    pilot_stats = compute_pilot()
-    compare_df = pd.DataFrame({
-        "Phase": ["Pilot (Year 0)", "Year 1 Base"],
-        "Revenue": [pilot_stats["Total revenue (AED)"], base_row["Total revenue (AED)"]],
-        "Gross Profit": [pilot_stats["Gross profit (AED)"], base_row["Gross profit (AED)"]],
-    })
+    # --- Comparison bar chart for Year 1 revenue & EBIT ---
+    compare_df = df_scen[["Scenario", "Total revenue (AED)", "EBIT (AED)"]].copy()
 
     fig_compare = px.bar(
-        compare_df.melt(id_vars="Phase", var_name="Metric", value_name="AED"),
-        x="Phase",
+        compare_df.melt(id_vars="Scenario", var_name="Metric", value_name="AED"),
+        x="Scenario",
         y="AED",
         color="Metric",
         barmode="group",
         color_discrete_sequence=["#5dade2", "#1f618d"],
-        title="Pilot vs Year 1 Base – Revenue & Gross Profit",
+        title="Year 1 – Revenue & EBIT Across Scenarios",
     )
     fig_compare.update_layout(
         yaxis_title="AED",
-        xaxis_title="Phase",
+        xaxis_title="Scenario",
         legend_title="Metric"
     )
     st.plotly_chart(fig_compare, use_container_width=True)
