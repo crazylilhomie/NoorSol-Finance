@@ -13,8 +13,11 @@ st.set_page_config(
 
 # ---- Fixed market assumptions (DO NOT EDIT IN UI) ----
 TOTAL_BIKES_DUBAI = 40_000          # From Dubai RTA / market guesstimates
-BAGS_PER_BIKE_PER_YEAR = 1.5        # Wear & tear in Dubai heat
-ANNUAL_BAG_DEMAND = TOTAL_BIKES_DUBAI * BAGS_PER_BIKE_PER_YEAR  # 60,000 bags
+BAGS_PER_BIKE_PER_YEAR = 1.0        # Conservative (1 bag per rider per year)
+ANNUAL_BAG_DEMAND = int(TOTAL_BIKES_DUBAI * BAGS_PER_BIKE_PER_YEAR)  # 40,000 bags
+
+# B2C: estimated Dubai cooler-style market (TAM in units/year)
+B2C_MARKET_SIZE_DUBAI = 200_000     # Cooler-style TAM per year in Dubai
 
 # ---- Fixed product economics ----
 # B2B: NOORSOL retrofit (upcycling existing boxes)
@@ -41,13 +44,9 @@ TOTAL_FIXED_COSTS = (
     + FIXED_OTHER
 )
 
-# ---- Default volumes (model assumptions) ----
+# ---- Pilot volumes (model assumptions) ----
 PILOT_B2B_UNITS = 400
 PILOT_B2C_UNITS = 200
-
-Y1_B2C_PESS = 600
-Y1_B2C_BASE = 900
-Y1_B2C_OPT = 1200
 
 
 # ============================================================
@@ -55,13 +54,16 @@ Y1_B2C_OPT = 1200
 # ============================================================
 def compute_scenario(name: str,
                      adoption_rate_b2b: float,
-                     b2c_units: int) -> dict:
+                     adoption_rate_b2c: float) -> dict:
     """
     Compute Year 1 financials for a given scenario.
-    Adoption_rate_b2b is % of annual bag demand captured as NOORSOL retrofits.
-    Uses LAUNCH pricing.
+    - adoption_rate_b2b: % of annual bag demand captured as NOORSOL retrofits.
+    - adoption_rate_b2c: % of B2C cooler-style TAM captured as NOORSOL MOVE.
+    Uses launch pricing.
     """
+    # Units from adoption rates
     b2b_units = ANNUAL_BAG_DEMAND * adoption_rate_b2b
+    b2c_units = B2C_MARKET_SIZE_DUBAI * adoption_rate_b2c
 
     b2b_price = B2B_PRICE_LAUNCH
     b2c_price = B2C_PRICE_LAUNCH
@@ -90,7 +92,8 @@ def compute_scenario(name: str,
 
     return {
         "Scenario": name,
-        "Adoption (B2B % of bags)": adoption_rate_b2b,
+        "Adoption B2B (bags %)": adoption_rate_b2b,
+        "Adoption B2C (coolers %)": adoption_rate_b2c,
         "B2B units": b2b_units,
         "B2C units": b2c_units,
         "Total units": total_units,
@@ -111,8 +114,8 @@ def compute_scenario(name: str,
 
 def compute_pilot() -> dict:
     """
-    Compute a 'pilot year' style income statement using pilot pricing and fixed Year 1 costs
-    (for comparability). Treated as Year 0.
+    Compute a 'pilot year' style income statement using pilot pricing and
+    fixed Year 1 costs (for comparability). Treated as Year 0.
     """
     b2b_units = PILOT_B2B_UNITS
     b2c_units = PILOT_B2C_UNITS
@@ -143,7 +146,8 @@ def compute_pilot() -> dict:
 
     return {
         "Scenario": "Pilot (Year 0)",
-        "Adoption (B2B % of bags)": np.nan,
+        "Adoption B2B (bags %)": np.nan,
+        "Adoption B2C (coolers %)": np.nan,
         "B2B units": b2b_units,
         "B2C units": b2c_units,
         "Total units": total_units,
@@ -190,9 +194,6 @@ st.markdown(
         border-radius: 0.8rem;
         border: 1px solid #d6e4ff;
     }
-    .center-text {
-        text-align: center;
-    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -202,47 +203,71 @@ st.markdown('<div class="big-title">📦 NOORSOL – Dubai Financial Dashboard</
 st.caption("Solar-powered smart delivery & outdoor boxes • Focus: Dubai • All values in AED")
 
 # ============================================================
-# SIDEBAR – ONLY MARKET CAPTURE ADJUSTABLE
+# SIDEBAR – MARKET CAPTURE SLIDERS
 # ============================================================
 st.sidebar.header("🎯 Market Capture Assumptions")
 
 st.sidebar.write(
-    "All prices, COGS, riders, and bag demand are **fixed**, based on Dubai-focused "
-    "research and smart guesstimates. The **only adjustable input** is how much of the "
-    "delivery-bag market NOORSOL captures in Year 1."
+    "All prices, COGS, riders, and TAMs are **fixed** based on Dubai-focused "
+    "research and smart guesstimates. You can adjust how much of each market "
+    "NOORSOL captures in Year 1."
 )
 
-adoption_pess = st.sidebar.slider(
-    "Pessimistic B2B adoption (% of annual bag demand)",
+# B2B adoption sliders (% of 40,000 bags)
+st.sidebar.subheader("B2B: Delivery Box Market (bags/year)")
+adoption_pess_b2b = st.sidebar.slider(
+    "Pessimistic B2B adoption (% of bag market)",
     min_value=0.01,
     max_value=0.20,
     value=0.05,
-    step=0.01
+    step=0.01,
 )
-
-adoption_base = st.sidebar.slider(
-    "Base B2B adoption (% of annual bag demand)",
+adoption_base_b2b = st.sidebar.slider(
+    "Base B2B adoption (% of bag market)",
     min_value=0.05,
     max_value=0.40,
     value=0.10,
-    step=0.01
+    step=0.01,
 )
-
-adoption_opt = st.sidebar.slider(
-    "Optimistic B2B adoption (% of annual bag demand)",
+adoption_opt_b2b = st.sidebar.slider(
+    "Optimistic B2B adoption (% of bag market)",
     min_value=0.10,
     max_value=0.80,
     value=0.20,
-    step=0.01
+    step=0.01,
+)
+
+# B2C adoption sliders (% of 200,000 cooler TAM)
+st.sidebar.subheader("B2C: Cooler-Style Market (units/year)")
+b2c_pess = st.sidebar.slider(
+    "Pessimistic B2C adoption (% of cooler market)",
+    min_value=0.001,
+    max_value=0.020,
+    value=0.003,   # 0.3%
+    step=0.001,
+)
+b2c_base = st.sidebar.slider(
+    "Base B2C adoption (% of cooler market)",
+    min_value=0.002,
+    max_value=0.030,
+    value=0.0045,  # 0.45%
+    step=0.0005,
+)
+b2c_opt = st.sidebar.slider(
+    "Optimistic B2C adoption (% of cooler market)",
+    min_value=0.003,
+    max_value=0.050,
+    value=0.006,   # 0.6%
+    step=0.001,
 )
 
 # ============================================================
 # PRE-COMPUTE YEAR 1 SCENARIOS (USED IN MULTIPLE TABS)
 # ============================================================
 scenarios = [
-    compute_scenario("Pessimistic", adoption_pess, Y1_B2C_PESS),
-    compute_scenario("Base",        adoption_base, Y1_B2C_BASE),
-    compute_scenario("Optimistic",  adoption_opt, Y1_B2C_OPT),
+    compute_scenario("Pessimistic", adoption_pess_b2b, b2c_pess),
+    compute_scenario("Base",        adoption_base_b2b, b2c_base),
+    compute_scenario("Optimistic",  adoption_opt_b2b,  b2c_opt),
 ]
 df_scen = pd.DataFrame(scenarios)
 
@@ -257,49 +282,52 @@ tab_overview, tab_pnl, tab_breakeven = st.tabs(
 # OVERVIEW TAB
 # ============================================================
 with tab_overview:
-    st.markdown('<div class="section-title">Dubai Delivery Ecosystem & NOORSOL Snapshot</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Dubai Ecosystem & NOORSOL Snapshot</div>', unsafe_allow_html=True)
 
-    top_col1, top_col2, top_col3 = st.columns(3)
+    # Top metrics row: core TAMs
+    top_col1, top_col2, top_col3, top_col4 = st.columns(4)
     with top_col1:
         st.metric("Active delivery bikes (Dubai)", f"{TOTAL_BIKES_DUBAI:,.0f}")
     with top_col2:
         st.metric("Bags per bike per year", f"{BAGS_PER_BIKE_PER_YEAR:.1f}")
     with top_col3:
-        st.metric("Annual bag demand (est.)", f"{ANNUAL_BAG_DEMAND:,.0f}")
+        st.metric("B2B bag TAM (year)", f"{ANNUAL_BAG_DEMAND:,.0f}")
+    with top_col4:
+        st.metric("B2C cooler TAM (year)", f"{B2C_MARKET_SIZE_DUBAI:,.0f}")
 
     st.markdown("")
     col1, col2 = st.columns(2)
 
+    # B2B assumptions card
     with col1:
         st.markdown('<div class="subtle-card">', unsafe_allow_html=True)
-        st.markdown("#### 🚚 Delivery Ecosystem (Fixed Assumptions)")
+        st.markdown("#### 🚚 B2B – Delivery Ecosystem (Fixed Assumptions)")
         st.markdown(
             f"""
-            - **{TOTAL_BIKES_DUBAI:,}** active delivery bikes in Dubai  
-            - Each bike uses **~{BAGS_PER_BIKE_PER_YEAR:.1f}** thermal bags per year  
-            - Implied annual bag replacement: **{int(ANNUAL_BAG_DEMAND):,} bags**  
+            - **{TOTAL_BIKES_DUBAI:,}** active delivery riders in Dubai  
+            - Each rider replaces **~{BAGS_PER_BIKE_PER_YEAR:.0f}** delivery bag per year  
+            - Implied B2B annual replacement: **{ANNUAL_BAG_DEMAND:,} bags**
 
             These numbers reflect:
-            - Registered delivery motorcycles in Dubai  
-            - Wear-and-tear due to heat and heavy daily usage  
+            - RTA-registered delivery motorcycles  
+            - Conservative replacement (1 bag per rider per year)  
             """
         )
         st.markdown('</div>', unsafe_allow_html=True)
 
+    # B2C smart guesstimate card
     with col2:
         st.markdown('<div class="subtle-card">', unsafe_allow_html=True)
-        st.markdown("#### 💰 Product Economics (Fixed)")
+        st.markdown("#### 🏖️ B2C – Outdoor Lifestyle & Cooler Market")
         st.markdown(
             f"""
-            **B2B – NOORSOL Retrofit (Delivery Platforms)**  
-            - Launch price: **{B2B_PRICE_LAUNCH} AED / unit**  
-            - COGS (retrofit upcycling): **{B2B_COGS} AED / unit**  
-            - Gross margin per B2B unit: **{B2B_PRICE_LAUNCH - B2B_COGS} AED**
+            - Dubai households: **~771,000**  
+            - Outdoor-active families (≈35%): **~270,000**  
+            - Beach & outdoor tourist groups (annual): **50,000–90,000**  
+            - UAE cooler market: **~530,000 units/year**, of which Dubai ≈ **40%**  
 
-            **B2C – NOORSOL MOVE (Beach-Lite)**  
-            - Launch price: **{B2C_PRICE_LAUNCH} AED / unit**  
-            - COGS: **{B2C_COGS} AED / unit**  
-            - Gross margin per B2C unit: **{B2C_PRICE_LAUNCH - B2C_COGS} AED**
+            👉 Therefore, we assume a **B2C cooler-style TAM of {B2C_MARKET_SIZE_DUBAI:,} units/year**  
+            (all brands).  
             """
         )
         st.markdown('</div>', unsafe_allow_html=True)
@@ -317,37 +345,94 @@ with tab_overview:
     st.metric("Total Fixed Costs (Annual)", f"{TOTAL_FIXED_COSTS:,.0f} AED")
 
     st.markdown("---")
-    st.markdown('<div class="section-title">How Much of Dubai’s Bag Market Does NOORSOL Capture?</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">How Much of Each Market Does NOORSOL Capture?</div>', unsafe_allow_html=True)
 
-    # Simple visual: adoption vs total bag demand
+    # B2B/B2C capture for each scenario
     demand_data = pd.DataFrame({
         "Scenario": ["Pessimistic", "Base", "Optimistic"],
-        "Adoption %": [adoption_pess, adoption_base, adoption_opt],
+        "B2B adoption %": [adoption_pess_b2b, adoption_base_b2b, adoption_opt_b2b],
+        "B2C adoption %": [b2c_pess, b2c_base, b2c_opt],
     })
-    demand_data["Captured bags (units)"] = demand_data["Adoption %"] * ANNUAL_BAG_DEMAND
+    demand_data["B2B captured bags"] = demand_data["B2B adoption %"] * ANNUAL_BAG_DEMAND
+    demand_data["B2C captured units"] = demand_data["B2C adoption %"] * B2C_MARKET_SIZE_DUBAI
 
-    fig_demand = px.bar(
-        demand_data,
-        x="Scenario",
-        y="Captured bags (units)",
-        color="Scenario",
-        color_discrete_sequence=["#5dade2", "#2874a6", "#154360"],
-        text_auto=".0f",
-        title="B2B Market Capture – Bags Replaced by NOORSOL (Year 1)"
+    col_b2b, col_b2c = st.columns(2)
+
+    with col_b2b:
+        fig_b2b = px.bar(
+            demand_data,
+            x="Scenario",
+            y="B2B captured bags",
+            color="Scenario",
+            color_discrete_sequence=["#5dade2", "#2874a6", "#154360"],
+            text_auto=".0f",
+            title="B2B Market Capture – Bags Replaced by NOORSOL (Year 1)"
+        )
+        fig_b2b.update_layout(
+            yaxis_title="Bags captured (units)",
+            xaxis_title="Scenario",
+            legend_title="Scenario",
+        )
+        st.plotly_chart(fig_b2b, use_container_width=True)
+
+    with col_b2c:
+        fig_b2c = px.bar(
+            demand_data,
+            x="Scenario",
+            y="B2C captured units",
+            color="Scenario",
+            color_discrete_sequence=["#7fb3d5", "#2e86c1", "#1b4f72"],
+            text_auto=".0f",
+            title="B2C Market Capture – NOORSOL MOVE Units (Year 1)"
+        )
+        fig_b2c.update_layout(
+            yaxis_title="Units captured",
+            xaxis_title="Scenario",
+            legend_title="Scenario",
+        )
+        st.plotly_chart(fig_b2c, use_container_width=True)
+
+    st.markdown("---")
+    st.markdown("### 🎬 Animated View – TAM vs Captured (Base Scenario)")
+
+    # Simple animation: TAM vs Captured for B2B & B2C in Base scenario
+    base_captured_b2b = ANNUAL_BAG_DEMAND * adoption_base_b2b
+    base_captured_b2c = B2C_MARKET_SIZE_DUBAI * b2c_base
+
+    df_anim = pd.DataFrame({
+        "Market": ["B2B bags", "B2C coolers", "B2B bags", "B2C coolers"],
+        "Units": [
+            ANNUAL_BAG_DEMAND,
+            B2C_MARKET_SIZE_DUBAI,
+            base_captured_b2b,
+            base_captured_b2c,
+        ],
+        "Layer": ["TAM", "TAM", "Captured (Base)", "Captured (Base)"],
+    })
+
+    fig_anim = px.bar(
+        df_anim,
+        x="Market",
+        y="Units",
+        color="Market",
+        animation_frame="Layer",
+        barmode="group",
+        color_discrete_sequence=["#1f77b4", "#aec7e8"],
+        title="TAM vs Captured – Base Scenario (Animated)",
     )
-    fig_demand.update_layout(
-        yaxis_title="Bags captured (units)",
-        xaxis_title="Scenario",
-        legend_title="Scenario",
+    fig_anim.update_layout(
+        yaxis_title="Units",
+        xaxis_title="Market",
+        legend_title="Market",
     )
-    st.plotly_chart(fig_demand, use_container_width=True)
+    st.plotly_chart(fig_anim, use_container_width=True)
 
 
 # ============================================================
 # P&L & BRANDS TAB
 # ============================================================
 with tab_pnl:
-    st.markdown('<div class="section-title">P&L, Brands & Scenarios</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">P&L, Brand Contribution & Scenarios</div>', unsafe_allow_html=True)
 
     # --- Dropdowns: Scenario & Phase ---
     col_sel1, col_sel2 = st.columns(2)
@@ -367,7 +452,7 @@ with tab_pnl:
     # --- Determine selected financials ---
     if phase_choice == "Pilot (Year 0)":
         selected_fin = compute_pilot()
-        selected_label = f"Pilot (Year 0) – {scenario_choice} (pilot assumptions are same across scenarios)"
+        selected_label = f"Pilot (Year 0) – same across scenarios (fixed pilot volumes)"
     else:
         selected_row = df_scen[df_scen["Scenario"] == scenario_choice].iloc[0]
         selected_fin = selected_row.to_dict()
@@ -409,8 +494,7 @@ with tab_pnl:
     st.markdown("---")
     st.markdown("### Brand Contribution – Revenue & Profit (Selected Case)")
 
-    # --- Donut charts: brand contribution to revenue & profit ---
-    # Compute brand-level gross profit
+    # --- Donut charts: brand contribution to revenue & gross profit ---
     gp_b2b = selected_fin["B2B revenue (AED)"] - selected_fin["B2B COGS total (AED)"]
     gp_b2c = selected_fin["B2C revenue (AED)"] - selected_fin["B2C COGS total (AED)"]
 
@@ -451,7 +535,6 @@ with tab_pnl:
     st.markdown("---")
     st.markdown("### Scenario Comparison – Year 1 (All Cases)")
 
-    # --- Comparison bar chart for Year 1 revenue & EBIT ---
     compare_df = df_scen[["Scenario", "Total revenue (AED)", "EBIT (AED)"]].copy()
 
     fig_compare = px.bar(
