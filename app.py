@@ -393,39 +393,37 @@ with tab_overview:
         st.plotly_chart(fig_b2c, use_container_width=True)
 
     st.markdown("---")
-    st.markdown("### 🎬 Animated View – TAM vs Captured (Base Scenario)")
+    st.markdown("### 📊 TAM vs NOORSOL Target – Base Scenario (Stacked View)")
 
-    # Simple animation: TAM vs Captured for B2B & B2C in Base scenario
+    # Stacked bar: Remaining Market vs NOORSOL Target for B2B & B2C
     base_captured_b2b = ANNUAL_BAG_DEMAND * adoption_base_b2b
     base_captured_b2c = B2C_MARKET_SIZE_DUBAI * b2c_base
 
-    df_anim = pd.DataFrame({
-        "Market": ["B2B bags", "B2C coolers", "B2B bags", "B2C coolers"],
-        "Units": [
-            ANNUAL_BAG_DEMAND,
-            B2C_MARKET_SIZE_DUBAI,
-            base_captured_b2b,
-            base_captured_b2c,
-        ],
-        "Layer": ["TAM", "TAM", "Captured (Base)", "Captured (Base)"],
+    remaining_b2b = max(ANNUAL_BAG_DEMAND - base_captured_b2b, 0)
+    remaining_b2c = max(B2C_MARKET_SIZE_DUBAI - base_captured_b2c, 0)
+
+    df_stack = pd.DataFrame({
+        "Market": ["B2B bags", "B2B bags", "B2C coolers", "B2C coolers"],
+        "Segment": ["NOORSOL Target", "Remaining Market", "NOORSOL Target", "Remaining Market"],
+        "Units": [base_captured_b2b, remaining_b2b, base_captured_b2c, remaining_b2c],
     })
 
-    fig_anim = px.bar(
-        df_anim,
+    fig_stack = px.bar(
+        df_stack,
         x="Market",
         y="Units",
-        color="Market",
-        animation_frame="Layer",
-        barmode="group",
-        color_discrete_sequence=["#1f77b4", "#aec7e8"],
-        title="TAM vs Captured – Base Scenario (Animated)",
+        color="Segment",
+        barmode="stack",
+        color_discrete_sequence=["#1f77b4", "#d6e4ff"],
+        title="TAM vs NOORSOL Target – Base Scenario (Stacked Bar)",
+        text_auto=".0f"
     )
-    fig_anim.update_layout(
+    fig_stack.update_layout(
         yaxis_title="Units",
         xaxis_title="Market",
-        legend_title="Market",
+        legend_title="Segment",
     )
-    st.plotly_chart(fig_anim, use_container_width=True)
+    st.plotly_chart(fig_stack, use_container_width=True)
 
 
 # ============================================================
@@ -513,7 +511,11 @@ with tab_pnl:
             title=f"Revenue Mix – {selected_label}",
             color_discrete_sequence=["#1f77b4", "#aec7e8"]
         )
-        fig_donut_rev.update_traces(textposition="inside", textinfo="percent+label")
+        fig_donut_rev.update_traces(
+            textposition="inside",
+            textinfo="percent+label",
+            insidetextorientation="radial"
+        )
         st.plotly_chart(fig_donut_rev, use_container_width=True)
 
     with col_d2:
@@ -529,8 +531,54 @@ with tab_pnl:
             title=f"Gross Profit Mix – {selected_label}",
             color_discrete_sequence=["#5dade2", "#21618c"]
         )
-        fig_donut_gp.update_traces(textposition="inside", textinfo="percent+label")
+        fig_donut_gp.update_traces(
+            textposition="inside",
+            textinfo="percent+label",
+            insidetextorientation="radial"
+        )
         st.plotly_chart(fig_donut_gp, use_container_width=True)
+
+    st.markdown("---")
+    st.markdown("### 📊 Key Financial Ratios – Selected Case")
+
+    total_rev = selected_fin["Total revenue (AED)"]
+    if total_rev > 0:
+        gross_margin_pct = selected_fin.get("Gross margin (%)", 0)
+        ebit_margin_pct = selected_fin.get("EBIT margin (%)", 0)
+        b2b_share = selected_fin["B2B revenue (AED)"] / total_rev * 100
+        b2c_share = selected_fin["B2C revenue (AED)"] / total_rev * 100
+    else:
+        gross_margin_pct = ebit_margin_pct = b2b_share = b2c_share = 0
+
+    metrics_df = pd.DataFrame({
+        "Metric": [
+            "Gross Margin (%)",
+            "EBIT Margin (%)",
+            "B2B Share of Revenue (%)",
+            "B2C Share of Revenue (%)",
+        ],
+        "Value": [
+            gross_margin_pct,
+            ebit_margin_pct,
+            b2b_share,
+            b2c_share,
+        ],
+    })
+
+    fig_metrics = px.bar(
+        metrics_df,
+        x="Value",
+        y="Metric",
+        orientation="h",
+        text_auto=".1f",
+        title="Key Financial Ratios",
+        color_discrete_sequence=["#2874a6"],
+    )
+    fig_metrics.update_layout(
+        xaxis_title="Percentage (%)",
+        yaxis_title="",
+    )
+    st.plotly_chart(fig_metrics, use_container_width=True)
 
     st.markdown("---")
     st.markdown("### Scenario Comparison – Year 1 (All Cases)")
