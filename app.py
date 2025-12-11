@@ -273,6 +273,43 @@ with tab_overview:
         st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("---")
+    st.markdown('<div class="section-title">💰 Product Unit Economics – Per Unit (Year 1 Pricing)</div>', unsafe_allow_html=True)
+
+    # Unit economics for both products
+    b2b_profit_per_unit = B2B_PRICE_LAUNCH - B2B_COGS
+    b2b_margin_pct = (b2b_profit_per_unit / B2B_PRICE_LAUNCH) * 100 if B2B_PRICE_LAUNCH > 0 else 0
+
+    b2c_profit_per_unit = B2C_PRICE_LAUNCH - B2C_COGS
+    b2c_margin_pct = (b2c_profit_per_unit / B2C_PRICE_LAUNCH) * 100 if B2C_PRICE_LAUNCH > 0 else 0
+
+    econ_col1, econ_col2 = st.columns(2)
+    with econ_col1:
+        st.markdown('<div class="subtle-card">', unsafe_allow_html=True)
+        st.markdown("#### B2B – NOORSOL Retrofit (Delivery Platforms)")
+        st.markdown(
+            f"""
+            - **Retail price**: {B2B_PRICE_LAUNCH} AED / unit  
+            - **COGS (retrofit & components)**: {B2B_COGS} AED / unit  
+            - **Profit per unit**: **{b2b_profit_per_unit} AED**  
+            - **Gross margin**: **{b2b_margin_pct:.1f}%**
+            """
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with econ_col2:
+        st.markdown('<div class="subtle-card">', unsafe_allow_html=True)
+        st.markdown("#### B2C – NOORSOL MOVE (Outdoor & Beach Users)")
+        st.markdown(
+            f"""
+            - **Retail price**: {B2C_PRICE_LAUNCH} AED / unit  
+            - **COGS (box, wheels, solar, insulation)**: {B2C_COGS} AED / unit  
+            - **Profit per unit**: **{b2c_profit_per_unit} AED**  
+            - **Gross margin**: **{b2c_margin_pct:.1f}%**
+            """
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown("---")
     st.markdown('<div class="section-title">Fixed Cost Structure – Year 1</div>', unsafe_allow_html=True)
 
     col_fc1, col_fc2, col_fc3, col_fc4, col_fc5 = st.columns(5)
