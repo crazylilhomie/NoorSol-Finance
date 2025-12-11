@@ -51,8 +51,8 @@ def compute_scenario(name: str,
                      adoption_rate_b2c: float) -> dict:
     """
     Compute Year 1 financials for a given scenario.
-    - adoption_rate_b2b: % of annual bag demand captured as NOORSOL retrofits.
-    - adoption_rate_b2c: % of B2C cooler-style TAM captured as NOORSOL MOVE.
+    - adoption_rate_b2b: fraction of annual bag demand captured as NOORSOL retrofits (0–1).
+    - adoption_rate_b2c: fraction of B2C cooler-style TAM captured as NOORSOL MOVE (0–1).
     Uses launch pricing.
     """
     # Units from adoption rates
@@ -134,6 +134,10 @@ st.markdown(
         border-radius: 0.8rem;
         border: 1px solid #d6e4ff;
     }
+    .sidebar-note {
+        font-size: 12px;
+        color: #3c4a60;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -143,63 +147,96 @@ st.markdown('<div class="big-title">📦 NOORSOL – Dubai Financial Dashboard</
 st.caption("Solar-powered smart delivery & outdoor boxes • Focus: Dubai • All values in AED")
 
 # ============================================================
-# SIDEBAR – MARKET CAPTURE SLIDERS
+# SIDEBAR – MARKET CAPTURE SLIDERS (ENHANCED & IN %)
 # ============================================================
 st.sidebar.header("🎯 Market Capture Assumptions")
 
 st.sidebar.write(
-    "All prices, COGS, riders, and TAMs are **fixed** based on Dubai-focused "
-    "research and smart guesstimates. You can adjust how much of each market "
-    "NOORSOL captures in **Year 1**."
+    "All prices, COGS, riders, and TAMs are fixed based on Dubai-focused "
+    "research and smart guesstimates. Use the sliders to choose how "
+    "**aggressive or conservative** NOORSOL is in **Year 1**."
 )
 
-# B2B adoption sliders (% of 40,000 bags)
-st.sidebar.subheader("B2B: Delivery Box Market (bags/year)")
-adoption_pess_b2b = st.sidebar.slider(
+# ----------------- B2B SLIDERS -----------------
+st.sidebar.subheader("🚚 B2B: Delivery Box Market")
+
+st.sidebar.markdown(
+    '<p class="sidebar-note">'
+    "Pessimistic = slow platform uptake • Base = realistic launch • Optimistic = strong platform push"
+    "</p>",
+    unsafe_allow_html=True,
+)
+
+adoption_pess_b2b_pct = st.sidebar.slider(
     "Pessimistic B2B adoption (% of bag market)",
-    min_value=0.01,
-    max_value=0.20,
-    value=0.05,
-    step=0.01,
+    min_value=1,
+    max_value=20,
+    value=5,
+    step=1,
+    format="%d %%"
 )
-adoption_base_b2b = st.sidebar.slider(
+adoption_base_b2b_pct = st.sidebar.slider(
     "Base B2B adoption (% of bag market)",
-    min_value=0.05,
-    max_value=0.40,
-    value=0.10,
-    step=0.01,
+    min_value=5,
+    max_value=40,
+    value=10,
+    step=1,
+    format="%d %%"
 )
-adoption_opt_b2b = st.sidebar.slider(
+adoption_opt_b2b_pct = st.sidebar.slider(
     "Optimistic B2B adoption (% of bag market)",
-    min_value=0.10,
-    max_value=0.80,
-    value=0.20,
-    step=0.01,
+    min_value=10,
+    max_value=80,
+    value=20,
+    step=1,
+    format="%d %%"
 )
 
-# B2C adoption sliders (% of 200,000 cooler TAM)
-st.sidebar.subheader("B2C: Cooler-Style Market (units/year)")
-b2c_pess = st.sidebar.slider(
+# Convert to decimals for backend calculations
+adoption_pess_b2b = adoption_pess_b2b_pct / 100
+adoption_base_b2b = adoption_base_b2b_pct / 100
+adoption_opt_b2b = adoption_opt_b2b_pct / 100
+
+# ----------------- B2C SLIDERS -----------------
+st.sidebar.subheader("🏖️ B2C: Cooler / Outdoor Market")
+
+st.sidebar.markdown(
+    '<p class="sidebar-note">'
+    "These % values are of the ~200k cooler-style units per year in Dubai (all brands). "
+    "We stay well below 1% in Base case."
+    "</p>",
+    unsafe_allow_html=True,
+)
+
+b2c_pess_pct = st.sidebar.slider(
     "Pessimistic B2C adoption (% of cooler market)",
-    min_value=0.001,
-    max_value=0.020,
-    value=0.003,   # 0.3%
-    step=0.001,
+    min_value=0.1,
+    max_value=2.0,
+    value=0.3,
+    step=0.1,
+    format="%.1f %%"
 )
-b2c_base = st.sidebar.slider(
+b2c_base_pct = st.sidebar.slider(
     "Base B2C adoption (% of cooler market)",
-    min_value=0.002,
-    max_value=0.030,
-    value=0.0045,  # 0.45%
-    step=0.0005,
+    min_value=0.2,
+    max_value=3.0,
+    value=0.45,
+    step=0.05,
+    format="%.2f %%"
 )
-b2c_opt = st.sidebar.slider(
+b2c_opt_pct = st.sidebar.slider(
     "Optimistic B2C adoption (% of cooler market)",
-    min_value=0.003,
-    max_value=0.050,
-    value=0.006,   # 0.6%
-    step=0.001,
+    min_value=0.3,
+    max_value=5.0,
+    value=0.60,
+    step=0.1,
+    format="%.1f %%"
 )
+
+# Convert to decimals
+b2c_pess = b2c_pess_pct / 100
+b2c_base = b2c_base_pct / 100
+b2c_opt = b2c_opt_pct / 100
 
 # ============================================================
 # PRE-COMPUTE YEAR 1 SCENARIOS (USED IN MULTIPLE TABS)
